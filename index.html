@@ -141,6 +141,14 @@
   .shop .sd{font-size:12px;color:var(--faint);}
   .shop .smeta{font-size:11px;color:var(--sub);margin-top:4px;}
   .shop .sp{font-size:13px;font-weight:600;white-space:nowrap;}
+  /* 駅で店を探すリンク（送客導線） */
+  .shoplink{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--line);
+    border-radius:10px;text-decoration:none;color:inherit;transition:.15s;cursor:pointer;}
+  .shoplink:hover{border-color:#bbb;background:var(--fill);}
+  .shoplink .icon{width:40px;height:40px;border-radius:9px;background:var(--fill);flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .shoplink .body{flex:1;min-width:0;}
+  .shoplink .arrow{color:#bbb;font-size:16px;flex-shrink:0;}
   .adnote{font-size:10px;color:#bbb;margin-top:10px;}
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);
     background:var(--ink);color:#fff;padding:11px 20px;border-radius:6px;font-size:13px;opacity:0;
@@ -263,7 +271,6 @@
         <div class="plist" id="w_list"></div>
       </div>
       <div class="waitmsg" id="w_msg"><span class="spin"></span>全員の入力がそろうと、自動で結果が出ます。</div>
-      <button class="btn sub" id="w_demo" onclick="mkDemoFill()">（デモ）残りの参加者の入力を再現する</button>
     </div>
 
     <div id="resultView" style="display:none;">
@@ -281,9 +288,9 @@
         <div class="shophead"><h2 id="shopHead">おすすめのお店</h2><span class="hs" id="shopSub"></span></div>
         <div class="tabs" id="tabs">
           <button class="tab on" onclick="mkSwitchCat(this,'izakaya')">居酒屋・個室</button>
+          <button class="tab" onclick="mkSwitchCat(this,'dining')">レストラン</button>
           <button class="tab" onclick="mkSwitchCat(this,'cafe')">カフェ</button>
-          <button class="tab" onclick="mkSwitchCat(this,'space')">会議室</button>
-          <button class="tab" onclick="mkSwitchCat(this,'karaoke')">カラオケ</button>
+          <button class="tab" onclick="mkSwitchCat(this,'izakaya_ko')">食べ放題</button>
         </div>
         <div id="shopList"></div>
         <div class="adnote">一部にお店からの紹介料を含みます。</div>
@@ -1191,23 +1198,6 @@ function startPoll(){
 }
 function stopPoll(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
 
-/* デモ: 残り参加者の入力を自動で埋める（動作確認用・保存もする） */
-const DEMO_PEOPLE=[
-  {nick:'さとう',stn:'中野'},{nick:'',stn:'品川'},{nick:'やまだ',stn:'大宮'},
-  {nick:'もり',stn:'横浜'},{nick:'',stn:'船橋'},{nick:'いとう',stn:'吉祥寺'},
-  {nick:'',stn:'北千住'}
-];
-function mkDemoFill(){
-  let di=0;
-  EVENT.slots.forEach(s=>{
-    if(!s.done){
-      const p=DEMO_PEOPLE[di++%DEMO_PEOPLE.length];
-      s.nick=p.nick;s.stn=p.stn;s.done=true;
-    }
-  });
-  mkProgress();
-}
-
 /* ====== 結果計算（既存ロジック流用） ====== */
 function mkEval(stns){
   return Object.keys(STATIONS).map(stn=>{
@@ -1275,19 +1265,34 @@ function pick(targetId,name){
 }
 document.addEventListener('click',e=>{if(!e.target.closest('.fieldwrap'))document.querySelectorAll('.suggbox').forEach(b=>b.innerHTML='');});
 
-/* ====== お店 ====== */
-const SHOPS={
-  izakaya:[["個室居酒屋 まる新","完全個室・飲み放題2H","4.32","3,980円〜"],["炭火 とり源","少人数個室・コース充実","4.18","4,500円〜"],["海鮮居酒屋 のれん","掘りごたつ・日本酒60種","4.05","4,200円〜"]],
-  cafe:[["喫茶ロカ","静かな2階席・電源あり","4.21","〜1,200円"],["パーラー木洩れ日","広めテーブル","4.09","〜1,500円"]],
-  space:[["会議室スペースA","Wi-Fi・モニタ完備","—","1,200円/時"],["レンタル会議室 NS","ホワイトボード付き","—","980円/時"]],
-  karaoke:[["カラオケ パセオ","フリータイムあり","3.92","1,800円〜"],["JOY店","ドリンクバー付き","3.85","1,500円〜"]]
+/* ====== お店をさがす（決定駅で予約サイトを検索する導線） ======
+   ダミーの店ではなく、決定した駅名で実際の予約サイトを検索する。
+   いまはアフィリエイトを通さない通常の検索リンク。
+   審査通過後、buildShopUrl の中身をアフィリエイトリンクに差し替えれば収益化される。 */
+const SHOP_CATS = {
+  izakaya: { label:'居酒屋・個室',   kw:'居酒屋',   icon:'🍶', desc:'飲み会・宴会におすすめ。個室や飲み放題のお店を探せます。' },
+  dining:  { label:'レストラン',     kw:'レストラン', icon:'🍽', desc:'落ち着いて食事ができるお店を探せます。' },
+  cafe:    { label:'カフェ',         kw:'カフェ',   icon:'☕️', desc:'軽く話せるカフェを探せます。' },
+  izakaya_ko:{ label:'食べ放題',     kw:'食べ放題', icon:'🍖', desc:'大人数でも楽しめる食べ放題のお店。' }
 };
+function buildShopUrl(stn, kw){
+  // 食べログで「駅名＋業態」を検索する結果ページ。
+  // ※ 審査通過後は、ここをアフィリエイトリンクに差し替える。
+  const q=encodeURIComponent(stn+'駅 '+kw);
+  return 'https://www.google.com/search?q='+q+'+予約';
+}
 function mkShops(cat,stn){
-  document.getElementById('shopList').innerHTML=(SHOPS[cat]||[]).map((s,i)=>`
-    <div class="shop" onclick="toast('予約サイトへ遷移します（デモ）')">
-      <div><div class="sn">${s[0]} ${stn}店</div><div class="sd">${s[1]}</div>
-      <div class="smeta">${s[2]!=='—'?'★'+s[2]+'　':''}${stn}駅 徒歩${3+i}分</div></div>
-      <div class="sp">${s[3]}</div></div>`).join('');
+  const c=SHOP_CATS[cat]||SHOP_CATS.izakaya;
+  const url=buildShopUrl(stn,c.kw);
+  document.getElementById('shopList').innerHTML=`
+    <a class="shop shoplink" href="${url}" target="_blank" rel="nofollow sponsored noopener">
+      <div class="icon">${c.icon}</div>
+      <div class="body">
+        <div class="sn">${stn}駅 周辺の${c.label}を探す</div>
+        <div class="sd">${c.desc}</div>
+      </div>
+      <div class="arrow">›</div>
+    </a>`;
 }
 function mkSwitchCat(btn,cat){document.querySelectorAll('#tabs .tab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');mkShops(cat,lastBest?lastBest.stn:'');}
 
