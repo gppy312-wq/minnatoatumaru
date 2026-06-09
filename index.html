@@ -237,7 +237,7 @@
       <div class="urlbox"><span id="u_url">—</span></div>
     </div>
     <button class="btn line" onclick="mkShareLine()">LINEでみんなに送る</button>
-    <button class="btn sub" style="margin-top:10px;" onclick="toast('リンクをコピーしました')">リンクをコピー</button>
+    <button class="btn sub" style="margin-top:10px;" onclick="mkCopyUrl()">リンクをコピー</button>
     <div style="height:1px;background:var(--line);margin:22px 0;"></div>
     <button class="btn sub" onclick="mkScreen(4);mkProgress();">いまの集計状況を見る</button>
     <p class="note">あなたの分は入力済みです。みんなの入力がそろうと結果が出ます。</p>
@@ -1326,6 +1326,20 @@ function mkShareLine(){
   window.open(lineUrl,'_blank');
 }
 function mkCopyShare(){const t=document.getElementById('shareText').textContent;navigator.clipboard?.writeText(t).then(()=>toast('コピーしました'),()=>toast('コピーしました'));}
+function mkCopyUrl(){
+  const url=document.getElementById('u_url').textContent;
+  if(!url||url==='—'){toast('先に集まりを作ってください');return;}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(()=>toast('リンクをコピーしました'),()=>fallbackCopy(url));
+  }else{fallbackCopy(url);}
+}
+function fallbackCopy(text){
+  const ta=document.createElement('textarea');ta.value=text;
+  ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);
+  ta.select();try{document.execCommand('copy');toast('リンクをコピーしました');}
+  catch(e){toast('コピーできませんでした');}
+  document.body.removeChild(ta);
+}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
 
 /* ====== 広告枠の設定 ======
