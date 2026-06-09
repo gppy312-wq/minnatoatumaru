@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>みんなと集まりやすい駅が見つかるサイト</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--ink:#111;--sub:#666;--faint:#999;--line:#e2e2e2;--line2:#ededed;
+    --bg:#fff;--fill:#fafafa;--mark:#1a6;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{font-family:'Inter','Noto Sans JP',sans-serif;background:var(--bg);color:var(--ink);
+    -webkit-font-smoothing:antialiased;line-height:1.6;font-size:15px;}
+  .wrap{max-width:440px;margin:0 auto;padding:0 20px 80px;}
+
+  header{padding:30px 0 16px;}
+  .region{font-size:11px;color:var(--faint);letter-spacing:.04em;margin-bottom:14px;}
+  h1.site{font-size:33px;font-weight:700;letter-spacing:-.03em;line-height:1.25;margin-bottom:18px;}
+
+  .demo-banner{background:var(--fill);border:1px solid var(--line);border-radius:7px;
+    padding:9px 12px;font-size:11px;color:var(--sub);margin-bottom:22px;line-height:1.5;}
+  .demo-banner b{color:var(--ink);}
+
+  .stepbar{display:flex;gap:5px;margin-bottom:24px;}
+  .stepbar i{flex:1;height:3px;background:var(--line);border-radius:2px;transition:.3s;}
+  .stepbar i.on{background:var(--ink);}
+
+  .catch{font-size:15px;font-weight:600;margin-bottom:6px;}
+  .lead{color:var(--sub);font-size:12.5px;line-height:1.7;margin-bottom:26px;}
+  h2.title{font-size:20px;font-weight:700;letter-spacing:-.02em;margin-bottom:8px;line-height:1.4;}
+  .sub{color:var(--sub);font-size:13px;margin-bottom:24px;}
+
+  .label{font-size:12px;font-weight:600;color:var(--sub);margin-bottom:9px;}
+  .inp{width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:7px;background:var(--bg);
+    font-family:inherit;font-size:15px;color:var(--ink);transition:.15s;outline:none;margin-bottom:14px;}
+  .inp.small{font-size:13px;padding:11px 11px;}
+  .inp:focus{border-color:var(--ink);}
+  .inp::placeholder{color:#bbb;}
+  .fieldwrap{position:relative;}
+  .suggbox{position:absolute;top:48px;left:0;right:0;background:var(--bg);border:1px solid var(--line);
+    border-radius:7px;z-index:30;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.06);}
+  .suggbox div{padding:10px 13px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--line2);
+    display:flex;justify-content:space-between;gap:8px;}
+  .suggbox div:last-child{border:none;}
+  .suggbox div:hover,.suggbox div.hi{background:var(--fill);}
+  .suggbox .meta{font-size:11px;color:var(--faint);}
+
+  .btn{width:100%;padding:14px;border:none;border-radius:7px;background:var(--ink);color:#fff;
+    font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .15s;}
+  .btn:hover{opacity:.85;}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn.sub{background:none;color:var(--sub);border:1px solid var(--line);}
+  .btn.sub:hover{border-color:var(--ink);color:var(--ink);opacity:1;}
+  .btn.line{background:#06c755;}
+  .btn.line:hover{opacity:.88;}
+  .note{font-size:11px;color:var(--faint);margin-top:16px;line-height:1.7;}
+  .err{color:#c33;font-size:12px;margin-bottom:10px;display:none;}
+
+  .screen{display:none;}
+  .screen.active{display:block;animation:fade .35s both;}
+  @keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+  /* URL発行カード */
+  .urlcard{border:1px solid var(--ink);border-radius:10px;padding:20px;margin-bottom:20px;}
+  .urlcard .ev{font-size:18px;font-weight:700;margin-bottom:4px;}
+  .urlcard .meta{font-size:12px;color:var(--faint);margin-bottom:16px;}
+  .urlbox{display:flex;gap:8px;align-items:center;background:var(--fill);border-radius:6px;
+    padding:11px 13px;font-size:12px;color:var(--sub);margin-bottom:12px;word-break:break-all;}
+  .copybtn{flex-shrink:0;background:var(--ink);color:#fff;border:none;border-radius:5px;
+    padding:7px 12px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;}
+
+  /* 集計・待ち状況 */
+  .progress{border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-bottom:20px;}
+  .progress .ph{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;}
+  .progress .ph .pt{font-size:14px;font-weight:700;}
+  .progress .ph .pc{font-size:13px;color:var(--mark);font-weight:700;font-variant-numeric:tabular-nums;}
+  .plist .pitem{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--line2);}
+  .plist .pitem:last-child{border:none;}
+  .plist .dot{width:18px;height:18px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;
+    justify-content:center;font-size:11px;}
+  .plist .dot.done{background:var(--mark);color:#fff;}
+  .plist .dot.wait{border:1.5px dashed var(--line);color:var(--faint);}
+  .plist .pn{flex:1;font-size:14px;}
+  .plist .pn.waiting{color:var(--faint);}
+  .plist .ps{font-size:12px;color:var(--faint);}
+
+  .waitmsg{text-align:center;color:var(--sub);font-size:13px;padding:18px 0;}
+  .waitmsg .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);
+    border-top-color:var(--ink);border-radius:50%;animation:spin 1s linear infinite;vertical-align:-2px;margin-right:6px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* 結果 */
+  .verdict{border:1px solid var(--ink);border-radius:10px;padding:24px 22px;margin-bottom:24px;}
+  .verdict .stn{font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:1;margin-bottom:8px;}
+  .verdict .stn small{font-size:17px;font-weight:500;color:var(--sub);}
+  .verdict .why{font-size:13px;color:var(--sub);margin-bottom:18px;}
+  .fair{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--faint);}
+  .fair .num{font-weight:700;color:var(--mark);font-variant-numeric:tabular-nums;}
+  .fair .track{flex:1;height:3px;background:var(--line);border-radius:2px;overflow:hidden;}
+  .fair .bar{height:100%;background:var(--mark);width:0;transition:width .7s ease;}
+  .sectlabel{font-size:12px;font-weight:600;color:var(--sub);margin:0 0 12px;}
+  .mrow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line2);}
+  .mrow:last-child{border:none;}
+  .mrow .mn{flex:1;font-size:14px;}
+  .mrow .mn .from{font-size:12px;color:var(--faint);}
+  .mrow .mt{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .mrow .mt small{font-size:11px;color:var(--faint);font-weight:400;}
+  details.alt{margin:18px 0 24px;}
+  details.alt summary{font-size:13px;color:var(--sub);cursor:pointer;list-style:none;padding:11px 0;
+    border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
+  details.alt summary::-webkit-details-marker{display:none;}
+  details.alt summary::after{content:"＋";float:right;color:var(--faint);}
+  details.alt[open] summary::after{content:"−";}
+  .altrow{display:flex;justify-content:space-between;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--line2);font-size:13px;}
+  .altrow:last-child{border:none;}
+  .altrow .an{font-weight:600;}
+  .altrow .ad{font-size:11px;color:var(--faint);margin-top:2px;}
+  .altrow .at{font-variant-numeric:tabular-nums;color:var(--sub);}
+  .sharebox{background:var(--fill);border-radius:8px;padding:15px;margin-bottom:28px;}
+  .sharebox .st{font-size:13px;line-height:1.6;margin-bottom:12px;word-break:break-all;}
+  .sharebox button{width:100%;padding:11px;border:1px solid var(--line);background:var(--bg);border-radius:6px;
+    font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;}
+  .sharebox button:hover{border-color:var(--ink);}
+  .shopwrap{margin-bottom:28px;}
+  .shophead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;}
+  .shophead h2{font-size:15px;font-weight:700;}
+  .shophead .hs{font-size:12px;color:var(--faint);}
+  .tabs{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{flex-shrink:0;padding:7px 12px;border:1px solid var(--line);border-radius:20px;background:none;
+    font-family:inherit;font-size:12px;color:var(--sub);cursor:pointer;white-space:nowrap;transition:.15s;}
+  .tab.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .shop{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:13px 0;
+    border-bottom:1px solid var(--line2);cursor:pointer;}
+  .shop:last-of-type{border:none;}
+  .shop .sn{font-size:14px;font-weight:600;margin-bottom:3px;}
+  .shop .sd{font-size:12px;color:var(--faint);}
+  .shop .smeta{font-size:11px;color:var(--sub);margin-top:4px;}
+  .shop .sp{font-size:13px;font-weight:600;white-space:nowrap;}
+  .adnote{font-size:10px;color:#bbb;margin-top:10px;}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);
+    background:var(--ink);color:#fff;padding:11px 20px;border-radius:6px;font-size:13px;opacity:0;
+    transition:.3s;z-index:99;}
+  .toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+
+  /* デモ用ロール切替バー */
+  .rolebar{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:100%;max-width:440px;
+    background:var(--ink);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:10px;
+    font-size:11px;z-index:50;}
+  .rolebar .rl{opacity:.7;flex-shrink:0;}
+  .rolebar .rbtns{display:flex;gap:6px;flex-wrap:wrap;}
+  .rolebar button{background:#333;color:#fff;border:none;border-radius:5px;padding:6px 9px;
+    font-family:inherit;font-size:11px;cursor:pointer;}
+  .rolebar button.cur{background:#fff;color:#111;font-weight:600;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="region">東京23区・近郊エリア対応</div>
+    <h1 class="site">みんなと集まりやすい駅が<br>見つかるサイト</h1>
+  </header>
+
+  <div class="demo-banner" id="statusBanner">
+    <b>保存対応版。</b>幹事が作ったリンクを開くと、その集まりの入力画面になります。みんなの入力はオンラインに保存され、別のスマホからでも続きができます。
+  </div>
+
+  <div class="stepbar"><i id="sb0"></i><i id="sb1"></i><i id="sb2"></i><i id="sb3"></i></div>
+
+  <!-- 画面1: 幹事が作る -->
+  <section class="screen active" id="s1">
+    <div class="catch">みんなの最寄駅から、<br>一番集まりやすい集合場所を。</div>
+    <p class="lead">幹事のあなたがURLを発行してシェア、<br>みんながそれぞれの自分の最寄り駅を入力すると、<br>一番集まりやすい駅と美味しいお店をピックアップします！</p>
+    <div class="label">どんな会？</div>
+    <input class="inp" id="evName" placeholder="例）久々に集まろうの会" value="久々に集まろうの会">
+    <div class="label">参加人数</div>
+    <input class="inp" id="evPpl" type="number" min="2" max="8" value="3">
+    <button class="btn" onclick="mkCreate()">みんなの最寄駅を聞く</button>
+    <p class="note">登録不要・無料で、<br>みんなの最寄駅を聞くボタンを押すと<br>みんなに送るリンクが完成。LINEでシェアするだけ。</p>
+  </section>
+
+  <!-- 画面2: リンク発行（幹事） -->
+  <section class="screen" id="s2">
+    <h2 class="title">リンクができました</h2>
+    <p class="sub">このリンクをみんなに送ってください。受け取った人が、自分の最寄駅を入れていきます。</p>
+    <div class="urlcard">
+      <div class="ev" id="u_name">—</div>
+      <div class="meta" id="u_meta">—</div>
+      <div class="urlbox"><span id="u_url">—</span></div>
+    </div>
+    <button class="btn line" onclick="mkShareLine()">LINEでみんなに送る</button>
+    <button class="btn sub" style="margin-top:10px;" onclick="toast('リンクをコピーしました（デモ）')">リンクをコピー</button>
+    <div style="height:1px;background:var(--line);margin:22px 0;"></div>
+    <button class="btn sub" onclick="mkGoPart()">自分の最寄駅も入力する</button>
+    <p class="note">幹事も参加者の一人として駅を入力できます。全員そろうと結果が出ます。</p>
+  </section>
+
+  <!-- 画面3: 参加者が自分の駅を入れる -->
+  <section class="screen" id="s3">
+    <h2 class="title" id="p_title">「集まり」に参加</h2>
+    <p class="sub">あなたの最寄駅とニックネームを入れてください。他の人の入力は見えません。</p>
+    <div class="label">ニックネーム（任意）</div>
+    <input class="inp small" id="p_nick" placeholder="例）たなか" maxlength="8">
+    <div class="label">あなたの最寄駅</div>
+    <div class="fieldwrap">
+      <input class="inp" id="p_stn" placeholder="駅名（例：しんじゅく / 新宿）" autocomplete="off"
+        oninput="suggest(this)" onkeydown="suggKey(event,this)">
+      <div class="suggbox" id="p_sugg"></div>
+    </div>
+    <div class="err" id="p_err">駅を候補から選んで入力してください。</div>
+    <button class="btn" onclick="mkSubmit()">この駅で参加する</button>
+    <p class="note" id="p_note"></p>
+  </section>
+
+  <!-- 画面4: 集計（待ち状況 → 結果） -->
+  <section class="screen" id="s4">
+    <div id="waitingView">
+      <h2 class="title">集計状況</h2>
+      <p class="sub" id="w_sub">みんなの入力を待っています。</p>
+      <div class="progress">
+        <div class="ph"><span class="pt" id="w_evname">—</span><span class="pc" id="w_count">—</span></div>
+        <div class="plist" id="w_list"></div>
+      </div>
+      <div class="waitmsg" id="w_msg"><span class="spin"></span>全員の入力がそろうと、自動で結果が出ます。</div>
+      <button class="btn sub" id="w_demo" onclick="mkDemoFill()">（デモ）残りの参加者の入力を再現する</button>
+    </div>
+
+    <div id="resultView" style="display:none;">
+      <div class="result-head" style="font-size:12px;color:var(--sub);margin-bottom:8px;">全員そろいました。一番公平な集合場所は</div>
+      <div class="verdict">
+        <div class="stn" id="vStn">—</div>
+        <div class="why" id="vWhy">—</div>
+        <div class="fair"><span>公平度</span><div class="track"><div class="bar" id="vBar"></div></div><span class="num" id="vNum">—</span></div>
+      </div>
+      <div class="sectlabel">参加者ごとの所要時間</div>
+      <div id="members"></div>
+      <details class="alt"><summary>ほかの候補も見る</summary><div id="alts"></div></details>
+      <div class="sharebox"><div class="st" id="shareText">—</div><button onclick="mkCopyShare()">この文をコピー</button></div>
+      <div class="shopwrap">
+        <div class="shophead"><h2 id="shopHead">おすすめのお店</h2><span class="hs" id="shopSub"></span></div>
+        <div class="tabs" id="tabs">
+          <button class="tab on" onclick="mkSwitchCat(this,'izakaya')">居酒屋・個室</button>
+          <button class="tab" onclick="mkSwitchCat(this,'cafe')">カフェ</button>
+          <button class="tab" onclick="mkSwitchCat(this,'space')">会議室</button>
+          <button class="tab" onclick="mkSwitchCat(this,'karaoke')">カラオケ</button>
+        </div>
+        <div id="shopList"></div>
+        <div class="adnote">一部にお店からの紹介料を含みます。</div>
+      </div>
+      <button class="btn sub" onclick="mkReset()">最初からやり直す</button>
+    </div>
+  </section>
+</div>
+
+<!-- テスト用視点切替（1台で確認するとき用。本番は各自が自分のURLを開く） -->
+<div class="rolebar" id="rolebar">
+  <span class="rl">確認用:</span>
+  <div class="rbtns">
+    <button id="rb1" class="cur" onclick="mkScreen(1)">幹事</button>
+    <button id="rb3" onclick="mkGoPart()">参加者</button>
+    <button id="rb4" onclick="mkScreen(4);mkProgress();">集計</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const STATIONS = {
+  "東京":{lat:35.681,lng:139.767,lines:["JR山手","JR中央","JR京葉","メトロ丸ノ内"]},
+  "有楽町":{lat:35.675,lng:139.763,lines:["JR山手","メトロ有楽町"]},
+  "新橋":{lat:35.666,lng:139.758,lines:["JR山手","JR東海道","メトロ銀座","都営浅草","ゆりかもめ"]},
+  "浜松町":{lat:35.655,lng:139.757,lines:["JR山手","JR京浜東北","都営浅草","都営大江戸"]},
+  "田町":{lat:35.646,lng:139.748,lines:["JR山手","JR京浜東北"]},
+  "高輪ゲートウェイ":{lat:35.636,lng:139.74,lines:["JR山手","JR京浜東北"]},
+  "品川":{lat:35.628,lng:139.738,lines:["JR山手","JR東海道","京急"]},
+  "大崎":{lat:35.62,lng:139.728,lines:["JR山手","JR埼京","りんかい"]},
+  "五反田":{lat:35.626,lng:139.723,lines:["JR山手","東急池上","都営浅草"]},
+  "目黒":{lat:35.634,lng:139.716,lines:["JR山手","東急目黒","メトロ南北","都営三田"]},
+  "恵比寿":{lat:35.646,lng:139.71,lines:["JR山手","JR埼京","メトロ日比谷"]},
+  "渋谷":{lat:35.658,lng:139.701,lines:["JR山手","東急東横","東急田園都市","京王井の頭","メトロ半蔵門","メトロ副都心","メトロ銀座"]},
+  "原宿":{lat:35.67,lng:139.702,lines:["JR山手","メトロ千代田"]},
+  "代々木":{lat:35.683,lng:139.702,lines:["JR山手","JR中央","都営大江戸"]},
+  "新宿":{lat:35.69,lng:139.7,lines:["JR山手","JR中央","小田急","京王","メトロ丸ノ内","都営新宿","都営大江戸"]},
+  "新大久保":{lat:35.701,lng:139.7,lines:["JR山手"]},
+  "高田馬場":{lat:35.712,lng:139.703,lines:["JR山手","西武新宿","メトロ東西"]},
+  "目白":{lat:35.721,lng:139.706,lines:["JR山手"]},
+  "池袋":{lat:35.729,lng:139.711,lines:["JR山手","東武東上","西武池袋","メトロ丸ノ内","メトロ有楽町","メトロ副都心"]},
+  "大塚":{lat:35.731,lng:139.728,lines:["JR山手","都電荒川"]},
+  "巣鴨":{lat:35.733,lng:139.739,lines:["JR山手","都営三田"]},
+  "駒込":{lat:35.736,lng:139.748,lines:["JR山手","メトロ南北"]},
+  "田端":{lat:35.738,lng:139.761,lines:["JR山手","JR京浜東北"]},
+  "西日暮里":{lat:35.732,lng:139.767,lines:["JR山手","メトロ千代田","日暮里舎人"]},
+  "日暮里":{lat:35.728,lng:139.771,lines:["JR山手","JR常磐","京成","日暮里舎人"]},
+  "鶯谷":{lat:35.721,lng:139.778,lines:["JR山手"]},
+  "上野":{lat:35.714,lng:139.777,lines:["JR山手","JR京浜東北","メトロ銀座","メトロ日比谷","京成"]},
+  "御徒町":{lat:35.707,lng:139.774,lines:["JR山手","JR京浜東北"]},
+  "秋葉原":{lat:35.698,lng:139.773,lines:["JR山手","JR総武","つくばEX","メトロ日比谷"]},
+  "神田":{lat:35.692,lng:139.771,lines:["JR山手","JR中央","メトロ銀座"]},
+  "御茶ノ水":{lat:35.7,lng:139.765,lines:["JR中央","JR総武","メトロ丸ノ内","メトロ千代田"]},
+  "水道橋":{lat:35.702,lng:139.753,lines:["JR総武","都営三田"]},
+  "飯田橋":{lat:35.702,lng:139.745,lines:["JR総武","メトロ東西","メトロ有楽町","メトロ南北","都営大江戸"]},
+  "市ケ谷":{lat:35.691,lng:139.735,lines:["JR総武","メトロ有楽町","メトロ南北","都営新宿"]},
+  "四ツ谷":{lat:35.686,lng:139.73,lines:["JR中央","JR総武","メトロ丸ノ内","メトロ南北"]},
+  "信濃町":{lat:35.68,lng:139.72,lines:["JR総武"]},
+  "千駄ケ谷":{lat:35.681,lng:139.711,lines:["JR総武"]},
+  "大久保":{lat:35.701,lng:139.697,lines:["JR総武"]},
+  "東中野":{lat:35.706,lng:139.683,lines:["JR中央","都営大江戸"]},
+  "中野":{lat:35.706,lng:139.666,lines:["JR中央","メトロ東西"]},
+  "高円寺":{lat:35.705,lng:139.65,lines:["JR中央"]},
+  "阿佐ケ谷":{lat:35.704,lng:139.636,lines:["JR中央"]},
+  "荻窪":{lat:35.704,lng:139.62,lines:["JR中央","メトロ丸ノ内"]},
+  "西荻窪":{lat:35.704,lng:139.599,lines:["JR中央"]},
+  "錦糸町":{lat:35.696,lng:139.814,lines:["JR総武","メトロ半蔵門"]},
+  "亀戸":{lat:35.697,lng:139.826,lines:["JR総武","東武亀戸"]},
+  "両国":{lat:35.696,lng:139.793,lines:["JR総武","都営大江戸"]},
+  "浅草橋":{lat:35.696,lng:139.785,lines:["JR総武","都営浅草"]},
+  "赤羽":{lat:35.778,lng:139.721,lines:["JR京浜東北","JR埼京","JR東北"]},
+  "王子":{lat:35.752,lng:139.738,lines:["JR京浜東北","メトロ南北","都電荒川"]},
+  "十条":{lat:35.764,lng:139.722,lines:["JR埼京"]},
+  "板橋":{lat:35.748,lng:139.719,lines:["JR埼京"]},
+  "大井町":{lat:35.606,lng:139.734,lines:["JR京浜東北","東急大井町","りんかい"]},
+  "大森":{lat:35.589,lng:139.728,lines:["JR京浜東北"]},
+  "蒲田":{lat:35.562,lng:139.716,lines:["JR京浜東北","東急池上","東急多摩川"]},
+  "北千住":{lat:35.749,lng:139.805,lines:["JR常磐","東武スカイ","メトロ日比谷","メトロ千代田","つくばEX"]},
+  "南千住":{lat:35.733,lng:139.799,lines:["JR常磐","メトロ日比谷","つくばEX"]},
+  "綾瀬":{lat:35.762,lng:139.825,lines:["JR常磐","メトロ千代田"]},
+  "亀有":{lat:35.766,lng:139.847,lines:["JR常磐"]},
+  "大手町":{lat:35.686,lng:139.766,lines:["メトロ丸ノ内","メトロ東西","メトロ千代田","メトロ半蔵門","都営三田"]},
+  "日本橋":{lat:35.682,lng:139.774,lines:["メトロ銀座","メトロ東西","都営浅草"]},
+  "銀座":{lat:35.671,lng:139.764,lines:["メトロ銀座","メトロ丸ノ内","メトロ日比谷"]},
+  "霞ケ関":{lat:35.674,lng:139.751,lines:["メトロ丸ノ内","メトロ日比谷","メトロ千代田"]},
+  "赤坂見附":{lat:35.677,lng:139.737,lines:["メトロ銀座","メトロ丸ノ内","メトロ半蔵門","メトロ南北"]},
+  "六本木":{lat:35.663,lng:139.731,lines:["メトロ日比谷","都営大江戸"]},
+  "表参道":{lat:35.665,lng:139.712,lines:["メトロ銀座","メトロ半蔵門","メトロ千代田"]},
+  "青山一丁目":{lat:35.673,lng:139.724,lines:["メトロ銀座","メトロ半蔵門","都営大江戸"]},
+  "後楽園":{lat:35.708,lng:139.752,lines:["メトロ丸ノ内","メトロ南北","都営三田","都営大江戸"]},
+  "新宿三丁目":{lat:35.69,lng:139.705,lines:["メトロ丸ノ内","メトロ副都心","都営新宿"]},
+  "九段下":{lat:35.696,lng:139.751,lines:["メトロ東西","メトロ半蔵門","都営新宿"]},
+  "押上":{lat:35.71,lng:139.813,lines:["メトロ半蔵門","都営浅草","東武スカイ","京成"]},
+  "浅草":{lat:35.711,lng:139.797,lines:["メトロ銀座","都営浅草","東武スカイ","つくばEX"]},
+  "門前仲町":{lat:35.672,lng:139.796,lines:["メトロ東西","都営大江戸"]},
+  "豊洲":{lat:35.655,lng:139.796,lines:["メトロ有楽町","ゆりかもめ"]},
+  "月島":{lat:35.665,lng:139.784,lines:["メトロ有楽町","都営大江戸"]},
+  "中目黒":{lat:35.644,lng:139.699,lines:["東急東横","メトロ日比谷"]},
+  "代官山":{lat:35.648,lng:139.703,lines:["東急東横"]},
+  "中野坂上":{lat:35.697,lng:139.683,lines:["メトロ丸ノ内","都営大江戸"]},
+  "方南町":{lat:35.685,lng:139.658,lines:["メトロ丸ノ内"]},
+  "清澄白河":{lat:35.681,lng:139.8,lines:["メトロ半蔵門","都営大江戸"]},
+  "森下":{lat:35.689,lng:139.797,lines:["都営新宿","都営大江戸"]},
+  "蔵前":{lat:35.704,lng:139.791,lines:["都営浅草","都営大江戸"]},
+  "下北沢":{lat:35.661,lng:139.668,lines:["小田急","京王井の頭"]},
+  "明大前":{lat:35.668,lng:139.65,lines:["京王","京王井の頭"]},
+  "笹塚":{lat:35.673,lng:139.666,lines:["京王","京王新線"]},
+  "三軒茶屋":{lat:35.643,lng:139.669,lines:["東急田園都市","東急世田谷"]},
+  "二子玉川":{lat:35.611,lng:139.627,lines:["東急田園都市","東急大井町"]},
+  "自由が丘":{lat:35.607,lng:139.668,lines:["東急東横","東急大井町"]},
+  "武蔵小山":{lat:35.622,lng:139.704,lines:["東急目黒"]},
+  "三鷹台":{lat:35.694,lng:139.583,lines:["京王井の頭"]},
+  "成城学園前":{lat:35.64,lng:139.601,lines:["小田急"]},
+  "経堂":{lat:35.651,lng:139.637,lines:["小田急"]},
+  "練馬":{lat:35.737,lng:139.654,lines:["西武池袋","都営大江戸"]},
+  "中村橋":{lat:35.737,lng:139.64,lines:["西武池袋"]},
+  "石神井公園":{lat:35.747,lng:139.606,lines:["西武池袋"]},
+  "東長崎":{lat:35.731,lng:139.681,lines:["西武池袋"]},
+  "中井":{lat:35.717,lng:139.687,lines:["西武新宿","都営大江戸"]},
+  "鷺ノ宮":{lat:35.722,lng:139.642,lines:["西武新宿"]},
+  "北綾瀬":{lat:35.776,lng:139.831,lines:["メトロ千代田"]},
+  "金町":{lat:35.766,lng:139.87,lines:["JR常磐","京成"]},
+  "小岩":{lat:35.732,lng:139.882,lines:["JR総武"]},
+  "新小岩":{lat:35.717,lng:139.858,lines:["JR総武"]},
+  "葛西":{lat:35.663,lng:139.872,lines:["メトロ東西"]},
+  "西葛西":{lat:35.665,lng:139.859,lines:["メトロ東西"]},
+  "吉祥寺":{lat:35.703,lng:139.58,lines:["JR中央","京王井の頭"]},
+  "三鷹":{lat:35.702,lng:139.56,lines:["JR中央"]},
+  "立川":{lat:35.698,lng:139.414,lines:["JR中央","JR南武","多摩モノレール"]},
+  "国分寺":{lat:35.7,lng:139.48,lines:["JR中央","西武国分寺"]},
+  "町田":{lat:35.542,lng:139.446,lines:["JR横浜","小田急"]},
+  "武蔵小杉":{lat:35.576,lng:139.659,lines:["JR横須賀","JR南武","東急東横","東急目黒"]},
+  "横浜":{lat:35.466,lng:139.622,lines:["JR東海道","JR横浜","東急東横","相鉄","京急","みなとみらい"]},
+  "川崎":{lat:35.531,lng:139.697,lines:["JR東海道","JR南武","京急"]},
+  "大宮":{lat:35.906,lng:139.624,lines:["JR京浜東北","JR埼京","JR東北","東武野田"]},
+  "浦和":{lat:35.86,lng:139.657,lines:["JR京浜東北","JR東北"]},
+  "和光市":{lat:35.781,lng:139.605,lines:["東武東上","メトロ有楽町","メトロ副都心"]},
+  "所沢":{lat:35.799,lng:139.469,lines:["西武池袋","西武新宿"]},
+  "船橋":{lat:35.701,lng:139.985,lines:["JR総武","東武野田","京成"]},
+  "西船橋":{lat:35.707,lng:139.926,lines:["JR総武","JR武蔵野","メトロ東西","東葉高速"]},
+  "柏":{lat:35.862,lng:139.971,lines:["JR常磐","東武野田"]},
+  "海老名":{lat:35.453,lng:139.39,lines:["小田急","相鉄","JR相模"]},
+  "本厚木":{lat:35.441,lng:139.365,lines:["小田急"]},
+};
+const READ={ // ローマ字/かな先頭 → 駅名
+  "shinjuku":"新宿","しんじゅく":"新宿","shibuya":"渋谷","しぶや":"渋谷",
+  "ikebukuro":"池袋","いけぶくろ":"池袋","tokyo":"東京","とうきょう":"東京",
+  "shinagawa":"品川","しながわ":"品川","ueno":"上野","うえの":"上野",
+  "yokohama":"横浜","よこはま":"横浜","kichijoji":"吉祥寺","きちじょうじ":"吉祥寺",
+  "nakano":"中野","なかの":"中野","omiya":"大宮","おおみや":"大宮",
+  "tachikawa":"立川","たちかわ":"立川","machida":"町田","まちだ":"町田",
+  "ebisu":"恵比寿","えびす":"恵比寿","kawasaki":"川崎","かわさき":"川崎",
+  "ginza":"銀座","ぎんざ":"銀座","akihabara":"秋葉原","あきはばら":"秋葉原",
+  "kanda":"神田","かんだ":"神田","ueno":"上野","asakusa":"浅草","あさくさ":"浅草",
+  "roppongi":"六本木","ろっぽんぎ":"六本木","meguro":"目黒","めぐろ":"目黒",
+  "gotanda":"五反田","ごたんだ":"五反田","osaki":"大崎","おおさき":"大崎",
+  "tamachi":"田町"," otsuka":"大塚","おおつか":"大塚","sugamo":"巣鴨","すがも":"巣鴨",
+  "nippori":"日暮里","にっぽり":"日暮里","akabane":"赤羽","あかばね":"赤羽",
+  "kitasenju":"北千住","きたせんじゅ":"北千住","ayase":"綾瀬","あやせ":"綾瀬",
+  "kinshicho":"錦糸町","きんしちょう":"錦糸町","oimachi":"大井町","おおいまち":"大井町",
+  "kamata":"蒲田","かまた":"蒲田","omori":"大森","おおもり":"大森",
+  "shimokitazawa":"下北沢","しもきたざわ":"下北沢","jiyugaoka":"自由が丘","じゆうがおか":"自由が丘",
+  "sangenjaya":"三軒茶屋","さんげんぢゃや":"三軒茶屋","futakotamagawa":"二子玉川",
+  "ootemachi":"大手町","おおてまち":"大手町","nihombashi":"日本橋","にほんばし":"日本橋",
+  "iidabashi":"飯田橋","いいだばし":"飯田橋","yotsuya":"四ツ谷","よつや":"四ツ谷",
+  "takadanobaba":"高田馬場","たかだのばば":"高田馬場","ogikubo":"荻窪","おぎくぼ":"荻窪",
+  "koenji":"高円寺","こうえんじ":"高円寺","mitaka":"三鷹","みたか":"三鷹",
+  "musashikosugi":"武蔵小杉","toyosu":"豊洲","とよす":"豊洲","oshiage":"押上","おしあげ":"押上",
+  "nerima":"練馬","ねりま":"練馬","kasai":"葛西","かさい":"葛西","funabashi":"船橋","ふなばし":"船橋",
+  "kashiwa":"柏","かしわ":"柏","urawa":"浦和","うらわ":"浦和","ebina":"海老名","えびな":"海老名"
+};
+function haversine(a,b){
+  const R=6371,toR=x=>x*Math.PI/180;
+  const dLat=toR(b.lat-a.lat),dLng=toR(b.lng-a.lng);
+  const s=Math.sin(dLat/2)**2+Math.cos(toR(a.lat))*Math.cos(toR(b.lat))*Math.sin(dLng/2)**2;
+  return 2*R*Math.asin(Math.sqrt(s));
+}
+function shareLine(a,b){return a.lines.some(l=>b.lines.includes(l));}
+function travelTime(n1,n2){
+  if(n1===n2)return 0;
+  const a=STATIONS[n1],b=STATIONS[n2];
+  const km=haversine(a,b);
+  // 基礎: 乗車時間 ≒ 距離/0.55km分 + 初乗り待ち5分
+  let t=km/0.55+5;
+  // 乗換ペナルティ: 直通路線がなければ +9分（乗換＋待ち）、距離が遠いほど乗換回数増を粗く加算
+  if(!shareLine(a,b)){
+    t+=9;
+    if(km>18)t+=8;     // 遠距離は2回乗換相当
+  }
+  return Math.round(t);
+}
+function travelTime(n1,n2){
+  if(n1===n2)return 0;
+  const a=STATIONS[n1],b=STATIONS[n2];
+  const km=haversine(a,b);
+  // 基礎: 乗車時間 ≒ 距離/0.55km分 + 初乗り待ち5分
+  let t=km/0.55+5;
+  // 乗換ペナルティ: 直通路線がなければ +9分（乗換＋待ち）、距離が遠いほど乗換回数増を粗く加算
+  if(!shareLine(a,b)){
+    t+=9;
+    if(km>18)t+=8;     // 遠距離は2回乗換相当
+  }
+  return Math.round(t);
+}
+
+/* ====== Supabase 接続 ====== */
+const SB_URL='https://lvonfsultacwpkwpxozb.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2b25mc3VsdGFjd3Brd3B4b3piIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NDA5MzksImV4cCI6MjA5NjQxNjkzOX0.pF0uITgcBvjxDGIVJA96A4nss4-4RNwzCaRWGKbrvgo';
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+
+/* 現在開いている集まり */
+let EVENT = null;     // {id, name, ppl, slots:[{nick,stn,done}]}
+let CURRENT_ID = null;
+
+/* ランダムなIDを作る */
+function newId(){return Math.random().toString(36).slice(2,8)+Math.random().toString(36).slice(2,6);}
+
+/* このサイトのベースURL（公開先で自動的にそのURLになる） */
+function baseUrl(){return location.origin + location.pathname;}
+
+/* ====== 幹事: 集まりを作る → Supabaseに保存 → リンク発行 ====== */
+async function mkCreate(){
+  const name=document.getElementById('evName').value.trim()||'集まり';
+  const ppl=Math.max(2,Math.min(8,parseInt(document.getElementById('evPpl').value)||3));
+  const id=newId();
+  const slots=Array.from({length:ppl},()=>({nick:'',stn:'',done:false}));
+  const btn=event&&event.target;if(btn)btn.disabled=true;
+  try{
+    const {error}=await sb.from('meetups').insert({id,name,ppl,slots});
+    if(error)throw error;
+  }catch(e){
+    toast('保存に失敗しました。通信環境を確認してください');
+    if(btn)btn.disabled=false;
+    return;
+  }
+  EVENT={id,name,ppl,slots};CURRENT_ID=id;
+  const url=baseUrl()+'?e='+id;
+  document.getElementById('u_name').textContent=name;
+  document.getElementById('u_meta').textContent=ppl+'人で集合場所を決めます';
+  document.getElementById('u_url').textContent=url;
+  if(btn)btn.disabled=false;
+  mkScreen(2);
+}
+
+/* ====== Supabaseから集まりを読み込む ====== */
+async function loadEvent(id){
+  const {data,error}=await sb.from('meetups').select('*').eq('id',id).single();
+  if(error||!data)return null;
+  return {id:data.id,name:data.name,ppl:data.ppl,slots:data.slots||[]};
+}
+
+/* ====== 参加者画面へ ====== */
+async function mkGoPart(){
+  if(!EVENT){toast('先に集まりを作ってください');mkScreen(1);return;}
+  // 最新状態を取り直す（他の人の入力が進んでいるかも）
+  const fresh=await loadEvent(EVENT.id);if(fresh)EVENT=fresh;
+  document.getElementById('p_title').textContent='「'+EVENT.name+'」に参加';
+  const done=EVENT.slots.filter(s=>s.done).length;
+  document.getElementById('p_note').textContent=`現在 ${done} / ${EVENT.ppl} 人が入力済み`;
+  document.getElementById('p_nick').value='';
+  document.getElementById('p_stn').value='';
+  document.getElementById('p_err').style.display='none';
+  mkScreen(3);
+}
+
+/* ====== 参加者: 自分の駅を保存 ====== */
+async function mkSubmit(){
+  const nick=document.getElementById('p_nick').value.trim();
+  const stn=document.getElementById('p_stn').value.trim();
+  const err=document.getElementById('p_err');
+  if(!STATIONS[stn]){err.style.display='block';return;}
+  err.style.display='none';
+  const btn=event&&event.target;if(btn)btn.disabled=true;
+  // 最新を取り直してから空きスロットに入れる（競合を減らす）
+  const fresh=await loadEvent(EVENT.id);if(fresh)EVENT=fresh;
+  const slot=EVENT.slots.find(s=>!s.done);
+  if(!slot){toast('すでに全員ぶん埋まっています');if(btn)btn.disabled=false;mkScreen(4);mkProgress();return;}
+  slot.nick=nick;slot.stn=stn;slot.done=true;
+  try{
+    const {error}=await sb.from('meetups').update({slots:EVENT.slots}).eq('id',EVENT.id);
+    if(error)throw error;
+  }catch(e){
+    toast('保存に失敗しました。もう一度お試しください');
+    slot.nick='';slot.stn='';slot.done=false;
+    if(btn)btn.disabled=false;return;
+  }
+  if(btn)btn.disabled=false;
+  mkScreen(4);mkProgress();
+}
+
+/* ====== 集計・待ち状況（定期的に最新を取得） ====== */
+let pollTimer=null;
+async function mkProgress(){
+  if(!EVENT){mkScreen(1);return;}
+  const fresh=await loadEvent(EVENT.id);if(fresh)EVENT=fresh;
+  const done=EVENT.slots.filter(s=>s.done).length;
+  const all=done>=EVENT.ppl;
+  if(all){stopPoll();mkShowResult();return;}
+
+  document.getElementById('waitingView').style.display='block';
+  document.getElementById('resultView').style.display='none';
+  document.getElementById('w_evname').textContent=EVENT.name;
+  document.getElementById('w_count').textContent=`${done} / ${EVENT.ppl} 人`;
+  document.getElementById('w_list').innerHTML=EVENT.slots.map((s,i)=>{
+    if(s.done){
+      const nm=s.nick?s.nick+'さん':s.stn+'駅の人';
+      return `<div class="pitem"><span class="dot done">✓</span>
+        <span class="pn">${nm}</span><span class="ps">${s.stn}駅</span></div>`;
+    }else{
+      return `<div class="pitem"><span class="dot wait">${i+1}</span>
+        <span class="pn waiting">${i+1}人目（入力待ち）</span><span class="ps">—</span></div>`;
+    }
+  }).join('');
+  const remain=EVENT.ppl-done;
+  document.getElementById('w_sub').textContent=
+    remain>0?`あと ${remain} 人の入力を待っています。`:'まもなく結果が出ます。';
+  // 集計画面にいる間は数秒ごとに最新を見にいく（他の人の入力を反映）
+  startPoll();
+}
+function startPoll(){
+  if(pollTimer)return;
+  pollTimer=setInterval(async()=>{
+    if(!document.getElementById('s4').classList.contains('active')){stopPoll();return;}
+    const fresh=await loadEvent(EVENT.id);if(fresh){EVENT=fresh;
+      const done=EVENT.slots.filter(s=>s.done).length;
+      if(done>=EVENT.ppl){stopPoll();mkShowResult();}else mkProgress();}
+  },4000);
+}
+function stopPoll(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
+
+/* デモ: 残り参加者の入力を自動で埋める（動作確認用・保存もする） */
+const DEMO_PEOPLE=[
+  {nick:'さとう',stn:'中野'},{nick:'',stn:'品川'},{nick:'やまだ',stn:'大宮'},
+  {nick:'もり',stn:'横浜'},{nick:'',stn:'船橋'},{nick:'いとう',stn:'吉祥寺'},
+  {nick:'',stn:'北千住'}
+];
+function mkDemoFill(){
+  let di=0;
+  EVENT.slots.forEach(s=>{
+    if(!s.done){
+      const p=DEMO_PEOPLE[di++%DEMO_PEOPLE.length];
+      s.nick=p.nick;s.stn=p.stn;s.done=true;
+    }
+  });
+  mkProgress();
+}
+
+/* ====== 結果計算（既存ロジック流用） ====== */
+function mkEval(stns){
+  return Object.keys(STATIONS).map(stn=>{
+    const times=stns.map(o=>travelTime(o,stn));
+    const total=times.reduce((a,b)=>a+b,0);
+    const spread=Math.max(...times)-Math.min(...times), avg=total/times.length;
+    return {stn,total,avg,spread,score:total+spread*1.5};
+  }).sort((a,b)=>a.score-b.score);
+}
+function mkFair(c){const sp=Math.max(0,100-c.spread*4),av=Math.max(0,100-c.avg*2);return Math.round(sp*0.6+av*0.4);}
+function mkLabel(s){return s.nick?s.nick+'さん':s.stn+'駅の人';}
+let lastBest=null;
+function mkShowResult(){
+  document.getElementById('waitingView').style.display='none';
+  document.getElementById('resultView').style.display='block';
+  const people=EVENT.slots.filter(s=>s.done);
+  const stns=people.map(s=>s.stn);
+  const cands=mkEval(stns);const best=cands[0];lastBest=best;
+  document.getElementById('vStn').innerHTML=best.stn+' <small>駅</small>';
+  document.getElementById('vWhy').textContent=`全員が平均${Math.round(best.avg)}分、最大差${best.spread}分`;
+  const sc=mkFair(best);document.getElementById('vNum').textContent=sc;
+  setTimeout(()=>document.getElementById('vBar').style.width=sc+'%',80);
+  document.getElementById('members').innerHTML=people.map(s=>{
+    const t=travelTime(s.stn,best.stn);
+    return `<div class="mrow"><div class="mn">${mkLabel(s)}<br><span class="from">${s.stn}駅から</span></div>
+      <div class="mt">${t}<small>分</small></div></div>`;}).join('');
+  const others=cands.filter(c=>c.stn!==best.stn).slice(0,3);
+  document.getElementById('alts').innerHTML=others.map(c=>{
+    let note=c.total<best.total?'合計は短いが公平性で劣る':c.spread<best.spread?'より公平だが平均が長い':'全体的にやや劣る';
+    return `<div class="altrow"><div><div class="an">${c.stn}駅</div><div class="ad">${note}</div></div>
+      <div class="at">合計${c.total}分 / 差${c.spread}分</div></div>`;}).join('');
+  const parts=people.map(s=>`${mkLabel(s)}${travelTime(s.stn,best.stn)}分`).join('、');
+  document.getElementById('shareText').textContent=`${best.stn}駅に集合。${parts}。`;
+  document.getElementById('shopHead').textContent=`${best.stn}のおすすめのお店`;
+  document.getElementById('shopSub').textContent=`${people.length}人`;
+  mkShops('izakaya',best.stn);
+}
+
+/* ====== サジェスト ====== */
+let curMatches=[],hi=-1;
+function suggest(el){
+  const box=document.getElementById('p_sugg');
+  const q=el.value.trim().toLowerCase();hi=-1;
+  if(!q){box.innerHTML='';return;}
+  let set=new Set(Object.keys(STATIONS).filter(n=>n.includes(q)));
+  for(const k in READ){if(k.startsWith(q))set.add(READ[k]);}
+  curMatches=[...set].slice(0,6);
+  if(!curMatches.length){box.innerHTML='';return;}
+  box.innerHTML=curMatches.map(n=>
+    `<div onclick="pick('${n}')"><span>${n}</span><span class="meta">${STATIONS[n].lines.slice(0,2).join('・')}</span></div>`).join('');
+}
+function suggKey(e,el){
+  const box=document.getElementById('p_sugg');const items=box.querySelectorAll('div');
+  if(!items.length)return;
+  if(e.key==='ArrowDown'){hi=Math.min(hi+1,items.length-1);e.preventDefault();}
+  else if(e.key==='ArrowUp'){hi=Math.max(hi-1,0);e.preventDefault();}
+  else if(e.key==='Enter'){if(hi>=0)pick(curMatches[hi]);e.preventDefault();return;}
+  items.forEach((it,i)=>it.classList.toggle('hi',i===hi));
+}
+function pick(name){document.getElementById('p_stn').value=name;document.getElementById('p_sugg').innerHTML='';}
+document.addEventListener('click',e=>{if(!e.target.closest('.fieldwrap'))document.getElementById('p_sugg').innerHTML='';});
+
+/* ====== お店 ====== */
+const SHOPS={
+  izakaya:[["個室居酒屋 まる新","完全個室・飲み放題2H","4.32","3,980円〜"],["炭火 とり源","少人数個室・コース充実","4.18","4,500円〜"],["海鮮居酒屋 のれん","掘りごたつ・日本酒60種","4.05","4,200円〜"]],
+  cafe:[["喫茶ロカ","静かな2階席・電源あり","4.21","〜1,200円"],["パーラー木洩れ日","広めテーブル","4.09","〜1,500円"]],
+  space:[["会議室スペースA","Wi-Fi・モニタ完備","—","1,200円/時"],["レンタル会議室 NS","ホワイトボード付き","—","980円/時"]],
+  karaoke:[["カラオケ パセオ","フリータイムあり","3.92","1,800円〜"],["JOY店","ドリンクバー付き","3.85","1,500円〜"]]
+};
+function mkShops(cat,stn){
+  document.getElementById('shopList').innerHTML=(SHOPS[cat]||[]).map((s,i)=>`
+    <div class="shop" onclick="toast('予約サイトへ遷移します（デモ）')">
+      <div><div class="sn">${s[0]} ${stn}店</div><div class="sd">${s[1]}</div>
+      <div class="smeta">${s[2]!=='—'?'★'+s[2]+'　':''}${stn}駅 徒歩${3+i}分</div></div>
+      <div class="sp">${s[3]}</div></div>`).join('');
+}
+function mkSwitchCat(btn,cat){document.querySelectorAll('#tabs .tab').forEach(t=>t.classList.remove('on'));btn.classList.add('on');mkShops(cat,lastBest?lastBest.stn:'');}
+
+/* ====== 画面遷移 ====== */
+function mkScreen(n){
+  [1,2,3,4].forEach(i=>document.getElementById('s'+i).classList.toggle('active',i===n));
+  [0,1,2,3].forEach(i=>document.getElementById('sb'+i).classList.toggle('on',i<=n-1));
+  ['rb1','rb3','rb4'].forEach(id=>document.getElementById(id).classList.remove('cur'));
+  if(n===1)document.getElementById('rb1').classList.add('cur');
+  if(n===3)document.getElementById('rb3').classList.add('cur');
+  if(n===4)document.getElementById('rb4').classList.add('cur');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function mkReset(){EVENT=null;document.getElementById('evName').value='久々に集まろうの会';document.getElementById('evPpl').value='3';mkScreen(1);}
+
+/* ====== 共有・トースト ====== */
+function mkShareLine(){
+  const url=document.getElementById('u_url').textContent;
+  const msg=`「${EVENT?EVENT.name:'集まり'}」の集合場所を決めます。あなたの最寄駅を入れてください→ ${url}`;
+  const lineUrl='https://line.me/R/msg/text/?'+encodeURIComponent(msg);
+  window.open(lineUrl,'_blank');
+}
+function mkCopyShare(){const t=document.getElementById('shareText').textContent;navigator.clipboard?.writeText(t).then(()=>toast('コピーしました'),()=>toast('コピーしました'));}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
+
+/* ====== 起動処理 ======
+   URLに ?e=ID があれば、その集まりの参加者として開く（配られたリンクを開いた人）。
+   なければ幹事の作成画面から始まる。 */
+async function boot(){
+  const params=new URLSearchParams(location.search);
+  const id=params.get('e');
+  if(id){
+    const ev=await loadEvent(id);
+    if(ev){
+      EVENT=ev;CURRENT_ID=id;
+      await mkGoPart();
+      return;
+    }else{
+      toast('この集まりが見つかりませんでした');
+    }
+  }
+  mkScreen(1);
+}
+boot();
+</script>
+</body>
+</html>
