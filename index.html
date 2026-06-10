@@ -287,13 +287,13 @@
       <div class="shopwrap">
         <div class="shophead"><h2 id="shopHead">おすすめのお店</h2><span class="hs" id="shopSub"></span></div>
         <div class="tabs" id="tabs">
-          <button class="tab on" onclick="mkSwitchCat(this,'izakaya')">居酒屋・個室</button>
-          <button class="tab" onclick="mkSwitchCat(this,'dining')">レストラン</button>
-          <button class="tab" onclick="mkSwitchCat(this,'cafe')">カフェ</button>
-          <button class="tab" onclick="mkSwitchCat(this,'izakaya_ko')">食べ放題</button>
+          <button class="tab on" onclick="mkSwitchCat(this,'dinner')">ディナー</button>
+          <button class="tab" onclick="mkSwitchCat(this,'lunch')">ランチ</button>
+          <button class="tab" onclick="mkSwitchCat(this,'private')">個室・接待</button>
+          <button class="tab" onclick="mkSwitchCat(this,'anniv')">記念日</button>
         </div>
         <div id="shopList"></div>
-        <div class="adnote">一部にお店からの紹介料を含みます。</div>
+        <div class="adnote">一部にお店からの紹介料を含みます。掲載：一休.comレストラン</div>
       </div>
       <button class="btn sub" onclick="mkReset()">最初からやり直す</button>
     </div>
@@ -1233,7 +1233,7 @@ function mkShowResult(){
   document.getElementById('shareText').textContent=`${best.stn}駅に集合。${parts}。`;
   document.getElementById('shopHead').textContent=`${best.stn}のおすすめのお店`;
   document.getElementById('shopSub').textContent=`${people.length}人`;
-  mkShops('izakaya',best.stn);
+  mkShops('dinner',best.stn);
 }
 
 /* ====== サジェスト（幹事画面・参加者画面の両方で動く汎用版） ====== */
@@ -1265,30 +1265,31 @@ function pick(targetId,name){
 }
 document.addEventListener('click',e=>{if(!e.target.closest('.fieldwrap'))document.querySelectorAll('.suggbox').forEach(b=>b.innerHTML='');});
 
-/* ====== お店をさがす（決定駅で予約サイトを検索する導線） ======
-   ダミーの店ではなく、決定した駅名で実際の予約サイトを検索する。
-   いまはアフィリエイトを通さない通常の検索リンク。
-   審査通過後、buildShopUrl の中身をアフィリエイトリンクに差し替えれば収益化される。 */
+/* ====== お店をさがす（決定駅で一休レストランを検索する導線） ======
+   一休.comレストランのキーワード検索URLに、決定駅名を渡す。
+   URL形式: https://restaurant.ikyu.com/search?term=（駅名）
+   一休と提携しLinkSwitchを有効にすると、このリンクが自動でアフィリエイト化され収益になる。
+   （一休は平均承認率76%・平均EPC4.44円と高く、計画的な集まりの予約と相性が良い） */
 const SHOP_CATS = {
-  izakaya: { label:'居酒屋・個室',   kw:'居酒屋',   icon:'🍶', desc:'飲み会・宴会におすすめ。個室や飲み放題のお店を探せます。' },
-  dining:  { label:'レストラン',     kw:'レストラン', icon:'🍽', desc:'落ち着いて食事ができるお店を探せます。' },
-  cafe:    { label:'カフェ',         kw:'カフェ',   icon:'☕️', desc:'軽く話せるカフェを探せます。' },
-  izakaya_ko:{ label:'食べ放題',     kw:'食べ放題', icon:'🍖', desc:'大人数でも楽しめる食べ放題のお店。' }
+  dinner: { label:'ディナー',       kw:'ディナー',   icon:'🍽', desc:'夜の会食・記念日に。厳選レストランのディナーを予約できます。' },
+  lunch:  { label:'ランチ',         kw:'ランチ',     icon:'🥂', desc:'昼の集まりに。ちょっと贅沢なランチを予約できます。' },
+  private:{ label:'個室・接待',     kw:'個室',       icon:'🚪', desc:'落ち着いて話せる個室のあるお店を探せます。' },
+  anniv:  { label:'記念日',         kw:'記念日',     icon:'🎉', desc:'お祝い・記念日にぴったりの特別なお店を探せます。' }
 };
 function buildShopUrl(stn, kw){
-  // 食べログで「駅名＋業態」を検索する結果ページ。
-  // ※ 審査通過後は、ここをアフィリエイトリンクに差し替える。
-  const q=encodeURIComponent(stn+'駅 '+kw);
-  return 'https://www.google.com/search?q='+q+'+予約';
+  // 一休.comレストランで「駅名（東京都）＋目的」をキーワード検索する。
+  // LinkSwitch有効時は、この通常リンクが自動でアフィリエイトリンクに変換される。
+  const term=encodeURIComponent(stn+'駅 '+kw);
+  return 'https://restaurant.ikyu.com/search?term='+term+'&sort=recommend';
 }
 function mkShops(cat,stn){
-  const c=SHOP_CATS[cat]||SHOP_CATS.izakaya;
+  const c=SHOP_CATS[cat]||SHOP_CATS.dinner;
   const url=buildShopUrl(stn,c.kw);
   document.getElementById('shopList').innerHTML=`
     <a class="shop shoplink" href="${url}" target="_blank" rel="nofollow sponsored noopener">
       <div class="icon">${c.icon}</div>
       <div class="body">
-        <div class="sn">${stn}駅 周辺の${c.label}を探す</div>
+        <div class="sn">${stn}駅 周辺で${c.label}のお店を探す</div>
         <div class="sd">${c.desc}</div>
       </div>
       <div class="arrow">›</div>
