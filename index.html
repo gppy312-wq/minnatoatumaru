@@ -271,10 +271,11 @@
         <div class="plist" id="w_list"></div>
       </div>
       <div class="waitmsg" id="w_msg"><span class="spin"></span>全員の入力がそろうと、自動で結果が出ます。</div>
+      <button class="btn" id="w_resultBtn" style="display:none;margin-top:8px;" onclick="mkShowResult()">結果を表示する</button>
     </div>
 
     <div id="resultView" style="display:none;">
-      <div class="result-head" style="font-size:12px;color:var(--sub);margin-bottom:8px;">全員そろいました。一番公平な集合場所は</div>
+      <div class="result-head" style="font-size:12px;color:var(--sub);margin-bottom:8px;">皆んなそろいました！<br>一番公平に集まりやすい駅は</div>
       <div class="verdict">
         <div class="stn" id="vStn">—</div>
         <div class="why" id="vWhy">—</div>
@@ -283,7 +284,6 @@
       <div class="sectlabel">参加者ごとの所要時間</div>
       <div id="members"></div>
       <details class="alt"><summary>ほかの候補も見る</summary><div id="alts"></div></details>
-      <div class="sharebox"><div class="st" id="shareText">—</div><button onclick="mkCopyShare()">この文をコピー</button></div>
       <div class="shopwrap">
         <div class="shophead"><h2 id="shopHead">おすすめのお店</h2><span class="hs" id="shopSub"></span></div>
         <div class="tabs" id="tabs">
@@ -1165,7 +1165,6 @@ async function mkProgress(){
   const fresh=await loadEvent(EVENT.id);if(fresh)EVENT=fresh;
   const done=EVENT.slots.filter(s=>s.done).length;
   const all=done>=EVENT.ppl;
-  if(all){stopPoll();mkShowResult();return;}
 
   document.getElementById('waitingView').style.display='block';
   document.getElementById('resultView').style.display='none';
@@ -1182,10 +1181,18 @@ async function mkProgress(){
     }
   }).join('');
   const remain=EVENT.ppl-done;
-  document.getElementById('w_sub').textContent=
-    remain>0?`あと ${remain} 人の入力を待っています。`:'まもなく結果が出ます。';
-  // 集計画面にいる間は数秒ごとに最新を見にいく（他の人の入力を反映）
-  startPoll();
+  // 全員そろったら「結果を表示する」ボタンを出し、待ちメッセージは消す
+  if(all){
+    document.getElementById('w_sub').textContent='全員の入力がそろいました。';
+    document.getElementById('w_msg').style.display='none';
+    document.getElementById('w_resultBtn').style.display='block';
+    stopPoll();
+  }else{
+    document.getElementById('w_sub').textContent=`あと ${remain} 人の入力を待っています。`;
+    document.getElementById('w_msg').style.display='';
+    document.getElementById('w_resultBtn').style.display='none';
+    startPoll();
+  }
 }
 function startPoll(){
   if(pollTimer)return;
@@ -1193,7 +1200,7 @@ function startPoll(){
     if(!document.getElementById('s4').classList.contains('active')){stopPoll();return;}
     const fresh=await loadEvent(EVENT.id);if(fresh){EVENT=fresh;
       const done=EVENT.slots.filter(s=>s.done).length;
-      if(done>=EVENT.ppl){stopPoll();mkShowResult();}else mkProgress();}
+      if(done>=EVENT.ppl){stopPoll();mkProgress();}else mkProgress();}
   },4000);
 }
 function stopPoll(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
@@ -1217,20 +1224,18 @@ function mkShowResult(){
   const stns=people.map(s=>s.stn);
   const cands=mkEval(stns);const best=cands[0];lastBest=best;
   document.getElementById('vStn').innerHTML=best.stn+' <small>駅</small>';
-  document.getElementById('vWhy').textContent=`全員が平均${Math.round(best.avg)}分、最大差${best.spread}分`;
+  document.getElementById('vWhy').textContent=`全員が平均約${Math.round(best.avg)}分、最大差${best.spread}分`;
   const sc=mkFair(best);document.getElementById('vNum').textContent=sc;
   setTimeout(()=>document.getElementById('vBar').style.width=sc+'%',80);
   document.getElementById('members').innerHTML=people.map(s=>{
     const t=travelTime(s.stn,best.stn);
     return `<div class="mrow"><div class="mn">${mkLabel(s)}<br><span class="from">${s.stn}駅から</span></div>
-      <div class="mt">${t}<small>分</small></div></div>`;}).join('');
+      <div class="mt">約${t}<small>分</small></div></div>`;}).join('');
   const others=cands.filter(c=>c.stn!==best.stn).slice(0,3);
   document.getElementById('alts').innerHTML=others.map(c=>{
     let note=c.total<best.total?'合計は短いが公平性で劣る':c.spread<best.spread?'より公平だが平均が長い':'全体的にやや劣る';
     return `<div class="altrow"><div><div class="an">${c.stn}駅</div><div class="ad">${note}</div></div>
       <div class="at">合計${c.total}分 / 差${c.spread}分</div></div>`;}).join('');
-  const parts=people.map(s=>`${mkLabel(s)}${travelTime(s.stn,best.stn)}分`).join('、');
-  document.getElementById('shareText').textContent=`${best.stn}駅に集合。${parts}。`;
   document.getElementById('shopHead').textContent=`${best.stn}のおすすめのお店`;
   document.getElementById('shopSub').textContent=`${people.length}人`;
   mkShops('dinner',best.stn);
@@ -1355,9 +1360,9 @@ const AD_CONFIG = {
   organizer: {
     mode: 'product',   // 'product' / 'generic' / 'off'
     items: [
-      { icon:'🍶', t:'幹事さん向け・宴会のお店をさがす',
-        d:'人数・エリアでまとめて予約。クーポンも',
-        url:'#' /* ← ここにアフィリエイトリンクを差し込む */ }
+      { icon:'🎁', t:'手土産・差し入れをさがす',
+        d:'久しぶりの集まりに。楽天市場でギフトを探せます',
+        url:'https://search.rakuten.co.jp/search/mall/'+encodeURIComponent('手土産 ギフト')+'/' }
     ]
   },
   participant: {
