@@ -272,6 +272,7 @@
       </div>
       <div class="waitmsg" id="w_msg"><span class="spin"></span>全員の入力がそろうと、自動で結果が出ます。</div>
       <button class="btn" id="w_resultBtn" style="display:none;margin-top:8px;" onclick="mkShowResult()">結果を表示する</button>
+      <button class="btn sub" style="margin-top:10px;" onclick="mkBackToLink()">‹ 招待リンクにもどる</button>
     </div>
 
     <div id="resultView" style="display:none;">
@@ -1109,6 +1110,18 @@ async function mkCreate(){
   document.getElementById('u_meta').textContent=ppl+'人で集合場所を決めます（あなたを含む）';
   document.getElementById('u_url').textContent=url;
   if(btn)btn.disabled=false;
+  mkScreen(2);
+}
+
+/* ====== 集計画面から招待リンクページ(s2)へ戻る ======
+   幹事・参加者どちらから来ても、EVENTから招待URLを再生成して表示する */
+function mkBackToLink(){
+  if(!EVENT){mkScreen(1);return;}
+  const url=baseUrl()+'?e='+EVENT.id;
+  document.getElementById('u_name').textContent=EVENT.name;
+  document.getElementById('u_meta').textContent=EVENT.ppl+'人で集合場所を決めます（あなたを含む）';
+  document.getElementById('u_url').textContent=url;
+  stopPoll();
   mkScreen(2);
 }
 
