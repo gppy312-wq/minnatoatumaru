@@ -1356,14 +1356,16 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
    - generic の場合: いったん空き枠を表示。AdSense等の審査通過後、
      renderGenericAd() の中に発行されたコードを貼る。
 */
+/* 楽天モーションウィジェットのタグ（ユーザーに合わせた商品を自動表示・スライド）。
+   iframe内で描画するため、document.write方式でも確実に動き、
+   「1ページに1つ」制約も回避できる。 */
+const RAKUTEN_WIDGET_TAG = '<script type="text/javascript">rakuten_design="slide";rakuten_affiliateId="54c7a348.117bc6b1.54c7a349.40c749ce";rakuten_items="ctsmatch";rakuten_genreId="0";rakuten_size="300x160";rakuten_target="_blank";rakuten_theme="gray";rakuten_border="off";rakuten_auto_mode="on";rakuten_genre_title="off";rakuten_recommend="on";rakuten_ts="1781102843182";<\/script><script type="text/javascript" src="https://xml.affiliate.rakuten.co.jp/widget/js/rakuten_widget.js?20230106"><\/script>';
+
 const AD_CONFIG = {
   organizer: {
-    mode: 'product',   // 'product' / 'generic' / 'off'
-    items: [
-      { icon:'🎁', t:'手土産・差し入れをさがす',
-        d:'久しぶりの集まりに。楽天市場でギフトを探せます',
-        url:'https://search.rakuten.co.jp/search/mall/'+encodeURIComponent('手土産 ギフト')+'/' }
-    ]
+    mode: 'widget',   // 'product' / 'generic' / 'widget' / 'off'
+    widget: RAKUTEN_WIDGET_TAG,
+    height: 170        // 300x160 ウィジェット + 余白
   },
   participant: {
     mode: 'product',
@@ -1381,7 +1383,19 @@ function renderAd(slotId, conf){
   if(conf.mode==='generic'){
     el.innerHTML=`<div class="adlabel">広告</div>
       <div class="adgeneric">広告枠（審査通過後にコードを設置）</div>`;
-    // AdSense等を使う場合は、ここで発行コードを挿入する
+    return;
+  }
+  if(conf.mode==='widget'){
+    // 外部ウィジェットをiframe内で安全に描画する
+    el.innerHTML=`<div class="adlabel">広告 / PR</div>
+      <iframe class="adwidget" scrolling="no" frameborder="0"
+        style="width:100%;height:${conf.height||170}px;border:none;display:block;overflow:hidden;"></iframe>`;
+    const ifr=el.querySelector('iframe.adwidget');
+    const doc=`<!doctype html><html><head><meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <style>html,body{margin:0;padding:0;display:flex;justify-content:center;align-items:flex-start;background:transparent;font-family:sans-serif;}</style>
+      </head><body>${conf.widget}</body></html>`;
+    ifr.srcdoc=doc;
     return;
   }
   // product モード
