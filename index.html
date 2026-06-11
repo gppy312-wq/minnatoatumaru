@@ -284,6 +284,7 @@
     <div class="err" id="p_err">駅を候補から選んで入力してください。</div>
     <button class="btn" onclick="mkSubmit()">この駅で参加する</button>
     <p class="note" id="p_note"></p>
+    <p class="note" id="p_resultHint" style="display:none;">全員の入力が揃うと、<br>「結果を見る」ボタンがここに表示されます。</p>
     <button class="btn" id="p_resultBtn" style="display:none;margin-top:8px;" onclick="mkPartSeeResult()">結果を見る</button>
     <div class="adslot" id="ad-participant"></div>
   </section>
@@ -559,8 +560,9 @@ async function mkGoPart(){
   document.getElementById('p_note').textContent=all
     ? `全員（${EVENT.ppl}人）の入力がそろっています`
     : `現在 ${done} / ${EVENT.ppl} 人が入力済み`;
-  // 全員そろっていたら「結果を見る」ボタンを表示する
+  // 全員そろっていたら「結果を見る」ボタン、未達なら予告文を表示する
   document.getElementById('p_resultBtn').style.display=all?'block':'none';
+  document.getElementById('p_resultHint').style.display=all?'none':'block';
   document.getElementById('p_nick').value='';
   document.getElementById('p_stn').value='';
   document.getElementById('p_err').style.display='none';
