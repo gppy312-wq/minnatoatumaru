@@ -272,6 +272,7 @@
       </div>
       <div class="waitmsg" id="w_msg"><span class="spin"></span>全員の入力がそろうと、自動で結果が出ます。</div>
       <button class="btn" id="w_resultBtn" style="display:none;margin-top:8px;" onclick="mkShowResult()">結果を表示する</button>
+      <button class="btn sub" style="margin-top:10px;" onclick="mkAddSlot(this)">＋ 人数を増やす（1人追加）</button>
       <button class="btn sub" style="margin-top:10px;" onclick="mkBackToLink()">‹ 招待リンクにもどる</button>
     </div>
 
@@ -1111,6 +1112,23 @@ async function mkCreate(){
   document.getElementById('u_url').textContent=url;
   if(btn)btn.disabled=false;
   mkScreen(2);
+}
+
+/* ====== 人数を増やす（途中参加に対応） ======
+   最新状態を取得してから ppl+1 と空きスロット1つを追加し、保存する。
+   全員そろった後でも増やせる（再び待機状態に戻る）。 */
+async function mkAddSlot(btn){
+  if(!EVENT)return;
+  if(btn)btn.disabled=true;
+  const fresh=await loadEvent(EVENT.id);if(fresh)EVENT=fresh;
+  if(EVENT.ppl>=20){toast('人数の上限は20人です');if(btn)btn.disabled=false;return;}
+  EVENT.ppl+=1;
+  EVENT.slots.push({nick:'',stn:'',done:false});
+  const {error}=await sb.from('meetups').update({ppl:EVENT.ppl,slots:EVENT.slots}).eq('id',EVENT.id);
+  if(btn)btn.disabled=false;
+  if(error){toast('保存に失敗しました。もう一度お試しください');return;}
+  toast('1人ぶん枠を増やしました');
+  mkProgress();
 }
 
 /* ====== 集計画面から招待リンクページ(s2)へ戻る ======
