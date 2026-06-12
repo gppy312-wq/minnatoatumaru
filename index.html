@@ -231,7 +231,7 @@
 
   <!-- 画面1: 幹事が作る -->
   <section class="screen active" id="s1">
-    <div class="catch">みんなの最寄駅から、<br>一番集まりやすい集合場所を。</div>
+    <div class="catch">みんなの最寄駅から、<br>一番集まりやすい駅を自動で決定。</div>
     <p class="lead">幹事のあなたがURLを発行してシェア、<br>集まりたいみんなが自分の最寄り駅を入力、<br>一番集まりやすい駅が自動でピックアップされます！</p>
     <div class="label">どんな会？</div>
     <input class="inp" id="evName" placeholder="例）久々に集まろうの会" value="久々に集まろうの会">
@@ -268,7 +268,7 @@
     </div>
     <button class="btn line" onclick="mkShareLine()">LINEでみんなに送る</button>
     <button class="btn sub" style="margin-top:10px;" onclick="mkCopyUrl()">リンクをコピー</button>
-    <p class="note" style="text-align:center;margin-top:10px;">幹事の方はこのリンクを保存してください。</p>
+    <p class="note" style="text-align:center;margin-top:10px;">幹事の方もこのリンクを保存してください。</p>
     <div style="height:1px;background:var(--line);margin:22px 0;"></div>
     <button class="btn sub" onclick="mkScreen(4);mkProgress();">いまの入力状況を見る</button>
     <p class="note">あなたの分は入力済みです。みんなの入力がそろうと結果が出ます。</p>
@@ -826,12 +826,9 @@ const AD_CONFIG = {
     height: 170        // 300x160 ウィジェット + 余白
   },
   participant: {
-    mode: 'product',
-    items: [
-      { icon:'🚃', t:'乗換・運賃をチェック',
-        d:'当日の経路と所要時間をかんたん確認',
-        url:'#' /* ← ここにアフィリエイトリンクを差し込む */ }
-    ]
+    mode: 'widget',
+    widget: RAKUTEN_WIDGET_TAG,
+    height: 170
   }
 };
 
