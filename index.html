@@ -653,8 +653,14 @@ function mkEval(stns){
   return Object.keys(STATIONS).map(stn=>{
     const times=stns.map(o=>travelTime(o,stn));
     const total=times.reduce((a,b)=>a+b,0);
-    const spread=Math.max(...times)-Math.min(...times), avg=total/times.length;
-    return {stn,total,avg,spread,score:total+spread*1.5};
+    const mx=Math.max(...times);
+    const spread=mx-Math.min(...times), avg=total/times.length;
+    /* 公平性重視のスコア:
+       - spread(最大差)×3 : 「人によって差が大きい」結果を強く避ける
+       - mx(最長時間)×2  : 「一番遠い人」の負担も抑える
+       これにより「一部の人だけ近い駅」や「全員等しく遠い駅」を避け、
+       誰も悪化させずに差を縮める駅が選ばれやすくなる */
+    return {stn,total,avg,spread,score:total+spread*3+mx*2};
   }).sort((a,b)=>a.score-b.score);
 }
 function mkFair(c){const sp=Math.max(0,100-c.spread*4),av=Math.max(0,100-c.avg*2);return Math.round(sp*0.6+av*0.4);}
