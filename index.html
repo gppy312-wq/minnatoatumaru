@@ -84,6 +84,8 @@
   .btn.line{background:#06c755;}
   .btn.line:hover{opacity:.88;}
   .note{font-size:11px;color:var(--faint);margin-top:16px;line-height:1.7;}
+  .readybox{margin-top:18px;padding:12px 14px;background:#eafaf2;border:1px solid #11aa66;border-radius:8px;color:#0c8c52;font-size:14px;font-weight:700;text-align:center;display:flex;align-items:center;justify-content:center;gap:7px;}
+  .readybox::before{content:"✓";display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;background:#11aa66;color:#fff;border-radius:50%;font-size:12px;font-weight:700;}
   .err{color:#c33;font-size:12px;margin-bottom:10px;display:none;}
 
   .screen{display:none;}
@@ -244,8 +246,8 @@
       <div class="suggbox" id="o_sugg"></div>
     </div>
     <div class="err" id="o_err">あなたの最寄駅を候補から選んで入力してください。</div>
-    <button class="btn" onclick="mkCreate()">みんなの最寄駅を聞く</button>
-    <p class="note">登録不要・無料で、<br>みんなの最寄駅を聞くボタンを押すとみんなに送るリンクが完成。<br>あとは、LINEでシェアするだけ。</p>
+    <button class="btn" onclick="mkCreate()">みんなの最寄駅を聞くリンクをつくる</button>
+    <p class="note">登録不要・無料で、<br>ボタンを押すとみんなに送るリンクが完成。<br>あとは、LINEでシェアするだけ。</p>
     <div class="adslot" id="ad-organizer"></div>
     <div class="site-footer">
       <button onclick="mkDoc('about')">このサイトについて</button>
@@ -266,6 +268,7 @@
     </div>
     <button class="btn line" onclick="mkShareLine()">LINEでみんなに送る</button>
     <button class="btn sub" style="margin-top:10px;" onclick="mkCopyUrl()">リンクをコピー</button>
+    <p class="note" style="text-align:center;margin-top:10px;">幹事の方はこのリンクを保存してください。</p>
     <div style="height:1px;background:var(--line);margin:22px 0;"></div>
     <button class="btn sub" onclick="mkScreen(4);mkProgress();">いまの入力状況を見る</button>
     <p class="note">あなたの分は入力済みです。みんなの入力がそろうと結果が出ます。</p>
@@ -274,7 +277,7 @@
   <!-- 画面3: 参加者が自分の駅を入れる -->
   <section class="screen" id="s3">
     <h2 class="title" id="p_title">「集まり」に参加</h2>
-    <p class="sub">あなたの最寄駅とニックネームを入れてください。他の人の入力は見えません。</p>
+    <p class="sub">あなたのニックネームと最寄駅（自宅/会社 etc...）を入力。</p>
     <div class="label">ニックネーム（任意）</div>
     <input class="inp small" id="p_nick" placeholder="例）たなか" maxlength="8">
     <div class="label">あなたの最寄駅</div>
@@ -287,7 +290,7 @@
     <button class="btn" onclick="mkSubmit()">この駅で参加する</button>
     <p class="note" id="p_note"></p>
     <p class="note" id="p_resultHint" style="display:none;">全員の入力が揃うと、<br>「結果を見る」ボタンがここに表示されます。</p>
-    <button class="btn" id="p_resultBtn" style="display:none;margin-top:8px;" onclick="mkPartSeeResult()">結果を見る</button>
+    <button class="btn" id="p_resultBtn" style="display:none;margin-top:12px;" onclick="mkPartSeeResult()">結果を見る</button>
     <div class="adslot" id="ad-participant"></div>
   </section>
 
@@ -560,9 +563,11 @@ async function mkGoPart(){
   document.getElementById('p_title').textContent='「'+EVENT.name+'」に参加';
   const done=EVENT.slots.filter(s=>s.done).length;
   const all=done>=EVENT.ppl;
-  document.getElementById('p_note').textContent=all
-    ? `全員（${EVENT.ppl}人）の入力がそろっています`
+  const pNote=document.getElementById('p_note');
+  pNote.textContent=all
+    ? `みんなの最寄駅がそろいました！（${EVENT.ppl}人）`
     : `現在 ${done} / ${EVENT.ppl} 人が入力済み`;
+  pNote.className=all?'readybox':'note';
   // 全員そろっていたら「結果を見る」ボタン、未達なら予告文を表示する
   document.getElementById('p_resultBtn').style.display=all?'block':'none';
   document.getElementById('p_resultHint').style.display=all?'none':'block';
