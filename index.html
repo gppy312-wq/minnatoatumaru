@@ -156,6 +156,9 @@
     font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;}
   .sharebox button:hover{border-color:var(--ink);}
   .shopwrap{margin-bottom:28px;}
+  .kanjibox{border:1px solid var(--line);border-radius:10px;padding:20px 18px;margin-bottom:20px;text-align:center;background:#fafafa;}
+  .kanjibox .kt{font-size:15px;font-weight:700;margin-bottom:8px;}
+  .kanjibox .kd{font-size:12px;color:var(--sub);line-height:1.8;}
   .shophead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;}
   .shophead h2{font-size:15px;font-weight:700;}
   .shophead .hs{font-size:12px;color:var(--faint);}
@@ -317,6 +320,7 @@
         <div class="fair"><span>公平度</span><div class="track"><div class="bar" id="vBar"></div></div><span class="num" id="vNum">—</span></div>
         <a id="vMap" class="mapbtn" href="#" target="_blank" rel="noopener">📍 この駅をGoogleマップで見る</a>
       </div>
+      <button class="btn line" style="margin-bottom:24px;" onclick="mkShareResult()">結果をLINEでみんなに共有</button>
       <div class="sectlabel">参加者ごとの所要時間</div>
       <div id="members"></div>
       <details class="alt"><summary>ほかの候補も見る</summary><div id="alts"></div></details>
@@ -330,6 +334,11 @@
         </div>
         <div id="shopList"></div>
         <div class="adnote">一部にお店からの紹介料を含みます。掲載：一休.comレストラン</div>
+      </div>
+      <div class="kanjibox">
+        <div class="kt">あなたも幹事になってみませんか？</div>
+        <div class="kd">次の集まりの場所決めも、このサイトでサクッと。<br>登録不要・無料で、リンクを送るだけ。</div>
+        <button class="btn" style="margin-top:12px;" onclick="mkBecomeOrganizer()">新しい集まりをつくる</button>
       </div>
       <button class="btn sub" onclick="mkReset()">最初からやり直す</button>
     </div>
@@ -478,7 +487,8 @@ const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZ
 const sb = window.supabase.createClient(SB_URL, SB_KEY);
 
 /* 現在開いている集まり */
-let EVENT = null;     // {id, name, ppl, slots:[{nick,stn,done}]}
+let EVENT = null;
+let LAST_BEST = null;  // 最後に計算した結果の駅(共有用)     // {id, name, ppl, slots:[{nick,stn,done}]}
 let CURRENT_ID = null;
 
 /* ランダムなIDを作る */
@@ -680,6 +690,7 @@ function mkShowResult(){
   const people=EVENT.slots.filter(s=>s.done);
   const stns=people.map(s=>s.stn);
   const cands=mkEval(stns);const best=cands[0];lastBest=best;
+  LAST_BEST=best;
   document.getElementById('vStn').innerHTML=best.stn+' <small>駅</small>';
   document.getElementById('vMap').href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(best.stn+'駅');
   document.getElementById('vWhy').textContent=`全員が平均約${Math.round(best.avg)}分、最大差${best.spread}分`;
@@ -788,6 +799,23 @@ function mkShareLine(){
   const msg=`「${EVENT?EVENT.name:'集まり'}」の集合場所を決めます。あなたの最寄駅を入れてください→ ${url}`;
   const lineUrl='https://line.me/R/msg/text/?'+encodeURIComponent(msg);
   window.open(lineUrl,'_blank');
+}
+
+/* ====== 結果をLINEで共有（バイラル導線） ======
+   会のメンバーに結果を知らせる。リンクは会のURLなので、
+   受け取った人は「結果を見る」からすぐ結果を確認できる。 */
+function mkShareResult(){
+  const stn=(LAST_BEST&&LAST_BEST.stn)||document.getElementById('vStn').textContent.replace(/\s*駅\s*$/,'').trim();
+  const url=EVENT?(baseUrl()+'?e='+EVENT.id):baseUrl();
+  const msg=`「${EVENT?EVENT.name:'集まり'}」の集合駅は「${stn}駅」に決まりました！🚉\nみんなと一番集まりやすい駅→ ${url}`;
+  const lineUrl='https://line.me/R/msg/text/?'+encodeURIComponent(msg);
+  window.open(lineUrl,'_blank');
+}
+
+/* ====== 参加者→幹事への転換（バイラル導線） ======
+   クリーンな状態でトップへ。?e= 付きURLで開いていても新規作成から始められる */
+function mkBecomeOrganizer(){
+  location.href=baseUrl();
 }
 function mkCopyShare(){const t=document.getElementById('shareText').textContent;navigator.clipboard?.writeText(t).then(()=>toast('コピーしました'),()=>toast('コピーしました'));}
 function mkCopyUrl(){
