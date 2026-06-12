@@ -12,12 +12,12 @@
   gtag('config', 'G-JRS06YFTWV');
 </script>
 <title>みんなと集まりやすい駅が見つかるサイト</title>
-<meta name="description" content="みんなの最寄駅から、最も公平に集まりやすい集合駅を自動で提案。リンクをシェアしてみんなで駅を入力するだけ。東京・神奈川・埼玉・千葉（一都三県）対応の無料サービス。">
+<meta name="description" content="あなたの最寄駅を入力！みんなと一番集まりやすい駅が見つかります！東京・神奈川・埼玉・千葉（一都三県）対応の無料サービス。">
 
 <!-- OGP（X・LINE・Facebookなどでシェアされたときの表示） -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="みんなと集まりやすい駅が見つかるサイト">
-<meta property="og:description" content="みんなの最寄駅から、最も公平に集まりやすい集合駅を自動で提案。リンクをシェアしてみんなで駅を入力するだけ。">
+<meta property="og:description" content="あなたの最寄駅を入力！みんなと一番集まりやすい駅が見つかります！">
 <meta property="og:url" content="https://minnatoatsumarueki.com/">
 <meta property="og:image" content="https://minnatoatsumarueki.com/ogp.png">
 <meta property="og:image:width" content="1200">
@@ -28,7 +28,7 @@
 <!-- X (Twitter) Card -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="みんなと集まりやすい駅が見つかるサイト">
-<meta name="twitter:description" content="みんなの最寄駅から、最も公平に集まりやすい集合駅を自動で提案。リンクをシェアしてみんなで駅を入力するだけ。">
+<meta name="twitter:description" content="あなたの最寄駅を入力！みんなと一番集まりやすい駅が見つかります！">
 <meta name="twitter:image" content="https://minnatoatsumarueki.com/ogp.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -125,6 +125,8 @@
   .verdict .stn small{font-size:17px;font-weight:500;color:var(--sub);}
   .verdict .why{font-size:13px;color:var(--sub);margin-bottom:18px;}
   .fair{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--faint);}
+  .mapbtn{display:block;text-align:center;margin-top:16px;padding:11px;border:1px solid var(--line);border-radius:8px;font-size:13px;color:var(--ink);text-decoration:none;transition:background .15s;}
+  .mapbtn:hover{background:#f6f6f6;}
   .fair .num{font-weight:700;color:var(--mark);font-variant-numeric:tabular-nums;}
   .fair .track{flex:1;height:3px;background:var(--line);border-radius:2px;overflow:hidden;}
   .fair .bar{height:100%;background:var(--mark);width:0;transition:width .7s ease;}
@@ -228,7 +230,7 @@
   <!-- 画面1: 幹事が作る -->
   <section class="screen active" id="s1">
     <div class="catch">みんなの最寄駅から、<br>一番集まりやすい集合場所を。</div>
-    <p class="lead">幹事のあなたがURLを発行してシェア、<br>みんながそれぞれの自分の最寄り駅を入力すると、<br>一番集まりやすい駅と美味しいお店をピックアップします！</p>
+    <p class="lead">幹事のあなたがURLを発行してシェア、<br>集まりたいみんなが自分の最寄り駅を入力、<br>一番集まりやすい駅が自動でピックアップされます！</p>
     <div class="label">どんな会？</div>
     <input class="inp" id="evName" placeholder="例）久々に集まろうの会" value="久々に集まろうの会">
     <div class="label">参加人数</div>
@@ -255,8 +257,8 @@
 
   <!-- 画面2: リンク発行（幹事） -->
   <section class="screen" id="s2">
-    <h2 class="title">リンクができました</h2>
-    <p class="sub">このリンクをみんなに送ってください。受け取った人が、自分の最寄駅を入れていきます。</p>
+    <h2 class="title">リンクができました！</h2>
+    <p class="sub">このリンクをみんなに送ってください。<br>最寄駅を入力してもらいましょう！</p>
     <div class="urlcard">
       <div class="ev" id="u_name">—</div>
       <div class="meta" id="u_meta">—</div>
@@ -265,7 +267,7 @@
     <button class="btn line" onclick="mkShareLine()">LINEでみんなに送る</button>
     <button class="btn sub" style="margin-top:10px;" onclick="mkCopyUrl()">リンクをコピー</button>
     <div style="height:1px;background:var(--line);margin:22px 0;"></div>
-    <button class="btn sub" onclick="mkScreen(4);mkProgress();">いまの集計状況を見る</button>
+    <button class="btn sub" onclick="mkScreen(4);mkProgress();">いまの入力状況を見る</button>
     <p class="note">あなたの分は入力済みです。みんなの入力がそろうと結果が出ます。</p>
   </section>
 
@@ -292,24 +294,25 @@
   <!-- 画面4: 集計（待ち状況 → 結果） -->
   <section class="screen" id="s4">
     <div id="waitingView">
-      <h2 class="title">集計状況</h2>
+      <h2 class="title">みんなの入力状況</h2>
       <p class="sub" id="w_sub">みんなの入力を待っています。</p>
       <div class="progress">
         <div class="ph"><span class="pt" id="w_evname">—</span><span class="pc" id="w_count">—</span></div>
         <div class="plist" id="w_list"></div>
       </div>
-      <div class="waitmsg" id="w_msg"><span class="spin"></span>全員の入力がそろうと、自動で結果が出ます。</div>
+      <div class="waitmsg" id="w_msg"><span class="spin"></span>みんなの最寄駅の入力がそろうと、自動で結果が出ます。</div>
       <button class="btn" id="w_resultBtn" style="display:none;margin-top:8px;" onclick="mkShowResult()">結果を表示する</button>
       <button class="btn sub" style="margin-top:10px;" onclick="mkAddSlot(this)">＋ 人数を増やす（1人追加）</button>
       <button class="btn sub" style="margin-top:10px;" onclick="mkBackToLink()">‹ 招待リンクにもどる</button>
     </div>
 
     <div id="resultView" style="display:none;">
-      <div class="result-head" style="font-size:12px;color:var(--sub);margin-bottom:8px;">皆んなそろいました！<br>一番公平に集まりやすい駅は</div>
+      <div class="result-head" style="font-size:12px;color:var(--sub);margin-bottom:8px;">決定！<br>みんなと一番集まりやすい駅は、</div>
       <div class="verdict">
         <div class="stn" id="vStn">—</div>
         <div class="why" id="vWhy">—</div>
         <div class="fair"><span>公平度</span><div class="track"><div class="bar" id="vBar"></div></div><span class="num" id="vNum">—</span></div>
+        <a id="vMap" class="mapbtn" href="#" target="_blank" rel="noopener">📍 この駅をGoogleマップで見る</a>
       </div>
       <div class="sectlabel">参加者ごとの所要時間</div>
       <div id="members"></div>
@@ -338,7 +341,7 @@
     <h3>できること</h3>
     <ul>
       <li>幹事がリンクをつくって参加者に共有し、各自が自分の最寄駅を入力します。</li>
-      <li>全員の入力がそろうと、移動時間がもっとも公平になる駅を計算して表示します。</li>
+      <li>みんなの最寄駅の入力がそろうと、移動時間がもっとも公平になる集まりやすい駅を計算して表示します。</li>
       <li>決まった駅の周辺で、集まりに使えるお店の候補もご案内します。</li>
     </ul>
     <h3>対応エリア</h3>
@@ -507,7 +510,7 @@ async function mkCreate(){
   EVENT={id,name,ppl,slots};CURRENT_ID=id;
   const url=baseUrl()+'?e='+id;
   document.getElementById('u_name').textContent=name;
-  document.getElementById('u_meta').textContent=ppl+'人で集合場所を決めます（あなたを含む）';
+  document.getElementById('u_meta').textContent=ppl+'人の集まりやすい駅を決めよう！（あなたを含む）';
   document.getElementById('u_url').textContent=url;
   if(btn)btn.disabled=false;
   mkScreen(2);
@@ -536,7 +539,7 @@ function mkBackToLink(){
   if(!EVENT){mkScreen(1);return;}
   const url=baseUrl()+'?e='+EVENT.id;
   document.getElementById('u_name').textContent=EVENT.name;
-  document.getElementById('u_meta').textContent=EVENT.ppl+'人で集合場所を決めます（あなたを含む）';
+  document.getElementById('u_meta').textContent=EVENT.ppl+'人の集まりやすい駅を決めよう！（あなたを含む）';
   document.getElementById('u_url').textContent=url;
   stopPoll();
   mkScreen(2);
@@ -626,7 +629,7 @@ async function mkProgress(){
   const remain=EVENT.ppl-done;
   // 全員そろったら「結果を表示する」ボタンを出し、待ちメッセージは消す
   if(all){
-    document.getElementById('w_sub').textContent='全員の入力がそろいました。';
+    document.getElementById('w_sub').textContent='みんなの最寄駅がそろいました。';
     document.getElementById('w_msg').style.display='none';
     document.getElementById('w_resultBtn').style.display='block';
     stopPoll();
@@ -673,6 +676,7 @@ function mkShowResult(){
   const stns=people.map(s=>s.stn);
   const cands=mkEval(stns);const best=cands[0];lastBest=best;
   document.getElementById('vStn').innerHTML=best.stn+' <small>駅</small>';
+  document.getElementById('vMap').href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(best.stn+'駅');
   document.getElementById('vWhy').textContent=`全員が平均約${Math.round(best.avg)}分、最大差${best.spread}分`;
   const sc=mkFair(best);document.getElementById('vNum').textContent=sc;
   setTimeout(()=>document.getElementById('vBar').style.width=sc+'%',80);
